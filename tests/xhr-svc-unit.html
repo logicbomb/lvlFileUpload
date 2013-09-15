@@ -1,0 +1,150 @@
+<html>
+<head>
+	<title>XHR Post Service Tests</title>
+	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+	<script src="../script/lvl-xhr-post.js"></script>
+	<script src="../lib/jasmine/jasmine.js"></script>
+	<script src="../lib/jasmine/jasmine-ajax.js"></script>
+	<script src="../lib/jasmine/jasmine-html.js"></script>
+	<script src="http://code.angularjs.org/1.0.7/angular-mocks.js"></script>
+	<link href="../lib/jasmine/jasmine.css" rel="stylesheet" />
+</head>
+<body>
+	<script>
+		var rootScope, q, deferred;
+		function setupTest() {
+			FakeXMLHttpRequest.prototype.upload = jasmine.createSpyObj('upload', ['onprogress', 'onload', 'onerror']);
+			jasmine.Ajax.useMock();
+
+			rootScope = {$apply: function(func) {func();}};
+			spyOn(rootScope, '$apply').andCallThrough();
+			deferred = jasmine.createSpyObj('deferred', ['promise', 'reject', 'resolve', 'notify']);
+			q = {
+				defer: function() { return deferred; }
+			};
+		}
+
+		describe("Succesfully upload files", function() {
+			beforeEach(function() {
+				FakeXMLHttpRequest.prototype.send = function(data) {
+					this.upload.onprogress({
+						lengthComputable: true,
+						total: 100,
+						loaded: 75
+					});
+
+					this.responseText = '{"msg": "server-data"}';
+					this.status = 200;
+					this.onload(this);
+				};
+				setupTest();
+				module(function($provide) {
+					$provide.value('$rootScope', rootScope);
+					$provide.value('$q', q);
+				})
+				
+			});
+
+			beforeEach(module('lvl.services'));
+
+			it ("calls progress and then finishes", inject(function(fileUploader) {
+				expect(fileUploader).not.toBe(null);
+
+				fileUploader.post([1]).to("/foo/bar");
+
+				expect(deferred.promise).toBeDefined();
+				expect(rootScope.$apply.calls.length).toEqual(2);
+				expect(deferred.notify).toHaveBeenCalledWith(75);
+				expect(deferred.resolve.calls.length).toEqual(1);
+				expect(deferred.reject.calls.length).toEqual(0);
+			}));
+
+			it ("uses the progress callback parameter if specified", inject(function(fileUploader) {
+				expect(fileUploader).not.toBe(null);
+				
+				var calls = 0;
+				var progressCallback = function(percentCompleted) { calls++; }
+				fileUploader.post([1], null, progressCallback).to("/foo/bar");
+
+				expect(deferred.promise).toBeDefined();
+				expect(calls).toEqual(1);
+				expect(rootScope.$apply.calls.length).toEqual(2);
+				expect(deferred.notify.calls.length).toEqual(0);
+				expect(deferred.resolve.calls.length).toEqual(1);
+				expect(deferred.reject.calls.length).toEqual(0);
+			}));
+		});
+
+		describe("Error uploading files", function() {
+			beforeEach(function() {
+				FakeXMLHttpRequest.prototype.send = function(data) {
+					FakeXMLHttpRequest.prototype.responseText = "";
+					FakeXMLHttpRequest.prototype.upload.onerror();
+				};
+
+				setupTest();
+				module(function($provide) {
+					$provide.value('$rootScope', rootScope);
+					$provide.value('$q', q);
+				})
+			});
+			
+			beforeEach(module('lvl.services'));
+
+			it("rejects the promise on server error", inject(function(fileUploader) {
+				expect(fileUploader).not.toBe(null);
+
+				var url = 'fail/route';
+				fileUploader.post([1]).to(url);
+
+				expect(deferred.promise).toBeDefined();
+				expect(rootScope.$apply.calls.length).toEqual(1);
+				expect(deferred.resolve.calls.length).toEqual(0);
+				expect(deferred.reject.calls.length).toEqual(1);
+				expect(deferred.reject).toHaveBeenCalledWith("An unknown error occurred posting to '" + url + "'");
+			}));
+
+			it("rejects the promise when no files are present", inject(function(fileUploader) {
+				expect(fileUploader).not.toBe(null);
+
+				var url = 'fail/route';
+				fileUploader.post([]).to(url);
+
+				expect(deferred.promise).toBeDefined();
+				expect(rootScope.$apply.calls.length).toEqual(0);
+				expect(deferred.resolve.calls.length).toEqual(0);
+				expect(deferred.reject.calls.length).toEqual(1);
+				expect(deferred.reject).toHaveBeenCalledWith("No files to upload");
+			}));
+
+			it("rejects the promise when the files array is null", inject(function(fileUploader) {
+				expect(fileUploader).not.toBe(null);
+
+				var url = 'fail/route';
+				fileUploader.post(null).to(url);
+
+				expect(deferred.promise).toBeDefined();
+				expect(rootScope.$apply.calls.length).toEqual(0);
+				expect(deferred.resolve.calls.length).toEqual(0);
+				expect(deferred.reject.calls.length).toEqual(1);
+				expect(deferred.reject).toHaveBeenCalledWith("No files to upload");
+			}));
+		});
+
+		(function() {
+			var jasmineEnv = jasmine.getEnv();
+			jasmineEnv.updateInterval = 250;
+			jasmineEnv.VERBOSE=true;
+
+			var htmlReporter = new jasmine.HtmlReporter();
+			jasmineEnv.addReporter(htmlReporter);
+
+			jasmineEnv.specFilter = function(spec) {
+				return htmlReporter.specFilter(spec);
+			};
+
+			jasmineEnv.execute();
+		})();
+	</script>
+</body>
+</html>
