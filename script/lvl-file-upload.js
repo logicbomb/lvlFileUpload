@@ -1,154 +1,164 @@
 angular
-	.module("lvl.directives.fileupload", ['lvl.services'])
-	.directive('lvlFileUpload', ['uuid', 'fileUploader', function(uuid, fileUploader) {
-		return {
-			restrict: 'E',
-			replace: true,
-			scope: {
-				chooseFileButtonText: '@',
-				uploadFileButtonText: '@',
-				uploadUrl: '@',
-				maxFiles: '@',
-				maxFileSizeMb: '@',
-				autoUpload: '@',
-				getAdditionalData: '&',
-				onProgress: '&',
-				onDone: '&',
-				onError: '&'
-			},
-			template: '<span>' + 
-						'<input type="file" style="opacity:0" />' +
-						'<label class="lvl-choose-button" ng-click="choose()">{{chooseFileButtonText}}</label>' +
-						'<button class="lvl-upload-button" ng-show="showUploadButton" ng-click="upload()">{{uploadFileButtonText}}</button>' +
-					  '</span>',
-			compile: function compile(tElement, tAttrs, transclude) {
-				var fileInput = angular.element(tElement.children()[0]);
-				var fileLabel = angular.element(tElement.children()[1]);
+    .module("lvl.directives.fileupload", ['lvl.services'])
+    .directive('lvlFileUpload', ['uuid', 'fileUploader', function(uuid, fileUploader) {
+        return {
+            restrict: 'E',
+            replace: true,
+            scope: {
+                chooseFileButtonText: '@',
+                chooseFileButtonStyle: '@',
+                uploadFileButtonText: '@',
+                uploadFileButtonStyle: '@',
+                uploadUrl: '@',
+                maxFiles: '@',
+                maxFileSizeMb: '@',
+                autoUpload: '@',
+                getAdditionalData: '&',
+                onProgress: '&',
+                onDone: '&',
+                onError: '&'
+            },
+            template: '<span>' +
+                '<input type="file" style="opacity:0" />' +
+                '<label class="{{ chooseFileButtonStyle }}" ng-click="choose()">{{chooseFileButtonText}}</label>' +
+                '<button class="{{ uploadFileButtonStyle }}" ng-show="showUploadButton" ng-click="upload()">{{uploadFileButtonText}}</button>' +
+                '</span>',
+            compile: function compile(tElement, tAttrs, transclude) {
+                var fileInput = angular.element(tElement.children()[0]);
+                var fileLabel = angular.element(tElement.children()[1]);
 
-				if (!tAttrs.maxFiles) {
-					tAttrs.maxFiles = 1;
-					fileInput.removeAttr("multiple")
-				} else {
-					fileInput.attr("multiple", "multiple");
-				}
+                if(!tAttrs.chooseFileButtonStyle) {
+                    tAttrs.chooseFileButtonStyle = 'lvl-choose-button';
+                }
 
-				if (!tAttrs.maxFileSizeMb) {
-					tAttrs.maxFileSizeMb = 50;
-				}
+                if(!tAttrs.uploadFileButtonStyle) {
+                    tAttrs.uploadFileButtonStyle = 'lvl-upload-button';
+                }
 
-				var fileId = uuid.new();
-				fileInput.attr("id", fileId);
-				fileLabel.attr("for", fileId);
+                if (!tAttrs.maxFiles) {
+                    tAttrs.maxFiles = 1;
+                    fileInput.removeAttr("multiple")
+                } else {
+                    fileInput.attr("multiple", "multiple");
+                }
 
-				return function postLink(scope, el, attrs, ctl) {
-					scope.files = [];
-					scope.showUploadButton = false;
+                if (!tAttrs.maxFileSizeMb) {
+                    tAttrs.maxFileSizeMb = 50;
+                }
 
-					el.bind('change', function(e) {
-						if (!e.target.files.length) return;
+                var fileId = uuid.new();
+                fileInput.attr("id", fileId);
+                fileLabel.attr("for", fileId);
 
-						scope.files = [];
-						var tooBig = [];
-						if (e.target.files.length > scope.maxFiles) {
-							raiseError(e.target.files, 'TOO_MANY_FILES', "Cannot upload " + e.target.files.length + " files, maxium allowed is " + scope.maxFiles);
-							return;
-						}
+                return function postLink(scope, el, attrs, ctl) {
+                    scope.files = [];
+                    scope.showUploadButton = false;
 
-						for (var i = 0; i < scope.maxFiles; i++) {
-							if (i >= e.target.files.length) break;
+                    el.bind('change', function(e) {
+                        if (!e.target.files.length) return;
 
-							var file = e.target.files[i];
-							scope.files.push(file);
+                        scope.files = [];
+                        var tooBig = [];
+                        if (e.target.files.length > scope.maxFiles) {
+                            raiseError(e.target.files, 'TOO_MANY_FILES', "Cannot upload " + e.target.files.length + " files, maxium allowed is " + scope.maxFiles);
+                            return;
+                        }
 
-							if (file.size > scope.maxFileSizeMb * 1048576) {
-								tooBig.push(file);
-							}
-						}
+                        for (var i = 0; i < scope.maxFiles; i++) {
+                            if (i >= e.target.files.length) break;
 
-						if (tooBig.length > 0) {
-							raiseError(tooBig, 'MAX_SIZE_EXCEEDED', "Files are larger than the specified max (" + scope.maxFileSizeMb + "MB)");
-							return;
-						}
+                            var file = e.target.files[i];
+                            scope.files.push(file);
 
-						if (scope.autoUpload && scope.autoUpload.toLowerCase() == 'true') {
-							scope.upload();
-						} else {
-							scope.$apply(function() {
-								scope.showUploadButton = true;
-							})
-						}
-					});
+                            if (file.size > scope.maxFileSizeMb * 1048576) {
+                                tooBig.push(file);
+                            }
+                        }
 
-					scope.upload = function() {
-						var data = null;
-						if (scope.getAdditionalData) {
-							data = scope.getAdditionalData();
-						}
+                        if (tooBig.length > 0) {
+                            raiseError(tooBig, 'MAX_SIZE_EXCEEDED', "Files are larger than the specified max (" + scope.maxFileSizeMb + "MB)");
+                            return;
+                        }
 
-						if (angular.version.major <= 1 && angular.version.minor < 2 ) {
-							//older versions of angular's q-service don't have a notify callback
-							//pass the onProgress callback into the service
-							fileUploader
-								.post(scope.files, data, function(complete) { scope.onProgress({percentDone: complete}); })
-								.to(scope.uploadUrl)
-								.then(function(ret) {
-									scope.onDone({files: ret.files, data: ret.data});
-								}, function(error) {
-									scope.onError({files: scope.files, type: 'UPLOAD_ERROR', msg: error});
-								})
-						} else {
-							fileUploader
-								.post(scope.files, data)
-								.to(scope.uploadUrl)
-								.then(function(ret) {
-									scope.onDone({files: ret.files, data: ret.data});
-								}, function(error) {
-									scope.onError({files: scope.files, type: 'UPLOAD_ERROR', msg: error});
-								},  function(progress) {
-									scope.onProgress({percentDone: progress});
-								});
-						}
+                        if (scope.autoUpload && scope.autoUpload.toLowerCase() == 'true') {
+                            scope.upload();
+                        } else {
+                            scope.$apply(function() {
+                                scope.showUploadButton = true;
+                            })
+                        }
+                    });
 
-						resetFileInput();
-					};
+                    scope.upload = function() {
+                        var data = null;
+                        if (scope.getAdditionalData) {
+                            data = scope.getAdditionalData();
+                        }
 
-					function raiseError(files, type, msg) {
-						scope.onError({files: files, type: type, msg: msg});
-						resetFileInput();
-					}
+                        if (angular.version.major <= 1 && angular.version.minor < 2 ) {
+                            //older versions of angular's q-service don't have a notify callback
+                            //pass the onProgress callback into the service
+                            fileUploader
+                                .post(scope.files, data, function(complete) { scope.onProgress({percentDone: complete}); })
+                                .to(scope.uploadUrl)
+                                .then(function(ret) {
+                                    scope.onDone({files: ret.files, data: ret.data});
+                                }, function(error) {
+                                    scope.onError({files: scope.files, type: 'UPLOAD_ERROR', msg: error});
+                                })
+                        } else {
+                            fileUploader
+                                .post(scope.files, data)
+                                .to(scope.uploadUrl)
+                                .then(function(ret) {
+                                    scope.onDone({files: ret.files, data: ret.data});
+                                }, function(error) {
+                                    scope.onError({files: scope.files, type: 'UPLOAD_ERROR', msg: error});
+                                },  function(progress) {
+                                    scope.onProgress({percentDone: progress});
+                                });
+                        }
 
-					function resetFileInput() {
-						var parent = fileInput.parent();
+                        resetFileInput();
+                    };
 
-						fileInput.remove();
-						var input = document.createElement("input");
-						var attr = document.createAttribute("type");
-						attr.nodeValue = "file";
-						input.setAttributeNode(attr);
+                    function raiseError(files, type, msg) {
+                        scope.onError({files: files, type: type, msg: msg});
+                        resetFileInput();
+                    }
 
-						var inputId = uuid.new();
-						attr = document.createAttribute("id");
-						attr.nodeValue = inputId;
-						input.setAttributeNode(attr);
+                    function resetFileInput() {
+                        var parent = fileInput.parent();
 
-						attr = document.createAttribute("style");
-						attr.nodeValue = "opacity: 0;display:inline;width:0";
-						input.setAttributeNode(attr);
+                        fileInput.remove();
+                        var input = document.createElement("input");
+                        var attr = document.createAttribute("type");
+                        attr.nodeValue = "file";
+                        input.setAttributeNode(attr);
+
+                        var inputId = uuid.new();
+                        attr = document.createAttribute("id");
+                        attr.nodeValue = inputId;
+                        input.setAttributeNode(attr);
+
+                        attr = document.createAttribute("style");
+                        attr.nodeValue = "opacity: 0;display:inline;width:0";
+                        input.setAttributeNode(attr);
 
 
 
-						if (scope.maxFiles > 1) {
-							attr = document.createAttribute("multiple");
-							attr.nodeValue = "multiple";
-							input.setAttributeNode(attr);
-						}
+                        if (scope.maxFiles > 1) {
+                            attr = document.createAttribute("multiple");
+                            attr.nodeValue = "multiple";
+                            input.setAttributeNode(attr);
+                        }
 
-						fileLabel.after(input);
-						fileLabel.attr("for", inputId);
+                        fileLabel.after(input);
+                        fileLabel.attr("for", inputId);
 
-						fileInput = angular.element(input);
-					}
-				}
-			}
-		}
-	}]);
+                        fileInput = angular.element(input);
+                    }
+                }
+            }
+        }
+    }]);

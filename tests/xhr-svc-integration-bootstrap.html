@@ -1,0 +1,194 @@
+
+
+This repository
+Explore
+Gist
+Blog
+Help
+klokoy
+1  Unwatch
+Star 0Fork 1PUBLIC klokoy/lvlFileUpload
+forked from logicbomb/lvlFileUpload
+branch: style  lvlFileUpload / tests / xhr-svc-integration-bootstrap.html
+klokoy 9 minutes ago Enabled styling of buttons via directive attributes
+1 contributor
+file 89 lines (76 sloc) 3.168 kb EditRawBlameHistory Delete
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+<html>
+<head>
+    <title>File Upload Demo</title>
+    <!-- This version of angular supports q.deferred.notify-->
+    <script src="../lib/angular.js"></script>
+    <!-- This version of angular doesn't support it
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+    -->
+    <script src="../lib/lvl-uuid.js"></script>
+    <script src="../script/lvl-xhr-post.js"></script>
+    <script src="../script/lvl-file-upload.js"></script>
+    <link href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+<body ng-app="fuApp">
+<h1>File Upload Directive</h1>
+
+<p>A directive for posting files as json to a server</p>
+
+<div ng-controller='fuCtl' style='margin-top:50px'>
+    <lvl-file-upload
+            auto-upload='false'
+            choose-file-button-text='Choose files'
+            choose-file-button-style='btn btn-primary'
+            upload-file-button-text='Upload files'
+            upload-file-button-style='btn btn-primary'
+            upload-url='http://localhost:3000/files'
+            max-files='10'
+            max-file-size-mb='5'
+            get-additional-data='getData(files)'
+            on-done='done(files, data)'
+            on-progress='progress(percentDone)'
+            on-error='error(files, type, msg)'/>
+</div>
+
+<div id='console'
+     style="margin:25px;padding:5px;width:850px;overflow:auto;height:250px;background-color:black;color:green;font-family:monospace;font-size:10pt"></div>
+</body>
+<script>
+    angular
+            .module('fuApp', ['lvl.directives.fileupload'])
+            .controller('fuCtl', ['$scope', function ($scope) {
+                $scope.progress = function (percentDone) {
+                    log("progress: " + percentDone + "%");
+                };
+
+                $scope.done = function (files, data) {
+                    log("upload complete");
+                    log("data: " + JSON.stringify(data));
+                    writeFiles(files);
+                };
+
+                $scope.getData = function (files) {
+                    return {msg: "from the client", date: new Date()};
+                };
+
+                $scope.error = function (files, type, msg) {
+                    log("Upload error: " + msg);
+                    log("Error type:" + type);
+                    writeFiles(files);
+                }
+
+                function writeFiles(files) {
+                    var msg = "Files<ul>";
+                    for (var i = 0; i < files.length; i++) {
+                        msg += "<li>" + files[i].name + "</li>";
+                    }
+                    msg += "</ul>";
+
+                    log(msg);
+                }
+
+                var elem = document.getElementById("console");
+                var console = angular.element(elem);
+
+                function log(msg) {
+                    var html = console.html();
+                    if (html.length) {
+                        html += "<br />";
+                    }
+
+                    html += msg;
+                    console.html(html);
+
+                    elem.scrollTop = elem.scrollHeight;
+                }
+            }]);
+</script>
+</html>
+Status API Training Shop Blog About © 2013 GitHub, Inc. Terms Privacy Security Contact 
