@@ -4,7 +4,7 @@
   "description": "Demo server",
   "main": "server.js",
   "dependencies": {
-    "express": "~3.4.*"
+    "express": "~3.4.0"
   },
   "devDependencies": {},
   "scripts": {
