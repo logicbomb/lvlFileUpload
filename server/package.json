@@ -1,10 +1,10 @@
 {
   "name": "demoServer",
-  "version": "0.0.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "Demo server",
   "main": "server.js",
   "dependencies": {
-    "express": "~3.4.0"
+    "express": "~3.4.*"
   },
   "devDependencies": {},
   "scripts": {
@@ -12,5 +12,5 @@
     "start": "node server.js"
   },
   "author": "",
-  "license": "BSD-2-Clause"
+  "license": "MIT"
 }
