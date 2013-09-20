@@ -1,0 +1,89 @@
+<html>
+<head>
+    <title>File Upload Demo</title>
+    <!-- This version of angular supports q.deferred.notify-->
+    <script src="../lib/angular.js"></script>
+    <!-- This version of angular doesn't support it
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+    -->
+    <script src="../lib/lvl-uuid.js"></script>
+    <script src="../script/lvl-xhr-post.js"></script>
+    <script src="../script/lvl-file-upload.js"></script>
+    <link href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+<body ng-app="fuApp">
+<h1>File Upload Directive</h1>
+
+<p>A directive for posting files as json to a server</p>
+
+<div ng-controller='fuCtl' style='margin-top:50px'>
+    <lvl-file-upload
+            auto-upload='false'
+            choose-file-button-text='Choose files'
+            choose-file-button-style='btn btn-primary'
+            upload-file-button-text='Upload files'
+            upload-file-button-style='btn btn-primary'
+            upload-url='http://localhost:3000/files'
+            max-files='10'
+            max-file-size-mb='5'
+            get-additional-data='getData(files)'
+            on-done='done(files, data)'
+            on-progress='progress(percentDone)'
+            on-error='error(files, type, msg)'/>
+</div>
+
+<div id='console'
+     style="margin:25px;padding:5px;width:850px;overflow:auto;height:250px;background-color:black;color:green;font-family:monospace;font-size:10pt"></div>
+</body>
+<script>
+    angular
+            .module('fuApp', ['lvl.directives.fileupload'])
+            .controller('fuCtl', ['$scope', function ($scope) {
+                $scope.progress = function (percentDone) {
+                    log("progress: " + percentDone + "%");
+                };
+
+                $scope.done = function (files, data) {
+                    log("upload complete");
+                    log("data: " + JSON.stringify(data));
+                    writeFiles(files);
+                };
+
+                $scope.getData = function (files) {
+                    return {msg: "from the client", date: new Date()};
+                };
+
+                $scope.error = function (files, type, msg) {
+                    log("Upload error: " + msg);
+                    log("Error type:" + type);
+                    writeFiles(files);
+                }
+
+                function writeFiles(files) {
+                    var msg = "Files<ul>";
+                    for (var i = 0; i < files.length; i++) {
+                        msg += "<li>" + files[i].name + "</li>";
+                    }
+                    msg += "</ul>";
+
+                    log(msg);
+                }
+
+                var elem = document.getElementById("console");
+                var console = angular.element(elem);
+
+                function log(msg) {
+                    var html = console.html();
+                    if (html.length) {
+                        html += "<br />";
+                    }
+
+                    html += msg;
+                    console.html(html);
+
+                    elem.scrollTop = elem.scrollHeight;
+                }
+            }]);
+</script>
+</html>
