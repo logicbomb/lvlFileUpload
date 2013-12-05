@@ -56,7 +56,8 @@
 			get-additional-data='getData(files)'
 			on-done='done(files, data)'
 			on-progress='progress(percentDone)' 
-			on-error='error(files, type, msg)'/>
+			on-error='error(files, type, msg)'
+			on-file-added='fileAdded(file)'/>
 	</div>
 
 	<div id='console' style="margin:25px;padding:5px;width:850px;overflow:auto;height:250px;background-color:black;color:green;font-family:monospace;font-size:10pt"></div>
@@ -83,6 +84,10 @@
 				log("Upload error: " + msg);
 				log("Error type:" + type);
 				writeFiles(files);
+			}
+			
+			$scope.error = function(file){
+				log('file: '+file.name+' selected');
 			}
 
 			function writeFiles(files) 
