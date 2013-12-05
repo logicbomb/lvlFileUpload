@@ -16,7 +16,8 @@ angular
                 getAdditionalData: '&',
                 onProgress: '&',
                 onDone: '&',
-                onError: '&'
+                onError: '&',
+                onFileAdded: '&'
             },
             template: '<span>' +
                 '<input type="file" style="opacity:0" />' +
@@ -69,6 +70,7 @@ angular
 
                             var file = e.target.files[i];
                             scope.files.push(file);
+                            scope.onFileAdded(file);
 
                             if (file.size > scope.maxFileSizeMb * 1048576) {
                                 tooBig.push(file);
