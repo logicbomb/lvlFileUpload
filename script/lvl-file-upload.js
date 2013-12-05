@@ -70,7 +70,7 @@ angular
 
                             var file = e.target.files[i];
                             scope.files.push(file);
-                            scope.onFileAdded(file);
+                            scope.onFileAdded({file:file});
 
                             if (file.size > scope.maxFileSizeMb * 1048576) {
                                 tooBig.push(file);
